@@ -1,0 +1,50 @@
+---
+- name: Deploy Docker container with HTML Page using Apache
+  hosts: target
+  become: true
+  # become_method: sudo
+  # become_user: root
+  gather_facts: no
+  tasks:
+
+    - name: Install pip 
+      become: yes
+      apt:
+        name: python3-pip  
+        state: present
+
+    - name: Install Docker Python module
+      pip:
+        name: docker
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      become: true  
+
+    - name: Create Docker network with docker_network ansible module with required subnet 
+      docker_network:
+        name: apache_network
+        #driver: bridge
+        ipam_config:
+          - subnet: 172.168.10.0/30
+            #state: present
+
+    - name: Create Docker container with Apache, pulling latest apache image and expose port 80
+      docker_container:
+        name: network_container
+        image: httpd:latest
+        ports:
+          - "80:80"
+        volumes:
+          - /tmp/network:/usr/local/apache2/htdocs
+        networks:
+          - name: apache_network
+       
+    - name: Copy HTML file to the host
+      copy:
+        src: /home/talha/network/automated_container_deployment/index.html
+        dest: /tmp/network
+    
+    
